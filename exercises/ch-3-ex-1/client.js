@@ -123,7 +123,8 @@ app.get('/fetch_resource', function(req, res) {
 	 */
 	
 	if (!access_token) {
-		res.render('error', {error: 'Missing access token.'});
+		console.log("Missing access token.");
+		res.redirect("/authorize");
 		return;
 	}
 
@@ -143,7 +144,7 @@ app.get('/fetch_resource', function(req, res) {
 		const body = JSON.parse(resource.getBody());
 		res.render('data', { resource: body });
 	} else {
-		res.render('error', { error: `Server returned response code: ${resource.statusCode}` });
+		res.redirect("/authorize");
 	}
 });
 
