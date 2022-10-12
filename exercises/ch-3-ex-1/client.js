@@ -66,6 +66,11 @@ app.get('/callback', function(req, res){
 	/*
 	 * Parse the response from the authorization server and get a token
 	 */
+
+	if (req.query.error === "access_denied") {
+		res.render('error', {error: 'Access Denied.'});
+		return;
+	}
  
 	// state を検証
 	if (req.query.state != state) {
@@ -104,7 +109,7 @@ app.get('/callback', function(req, res){
 	// リクエスト・ボディのJSONを解析
 	const body = JSON.parse(tokRes.getBody());
 	access_token = body.access_token;
-	
+
 	res.render('index', {
 		access_token: access_token, 
 		scope: scope
