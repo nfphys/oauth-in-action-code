@@ -64,6 +64,41 @@ app.get('/callback', function(req, res){
 	 * Parse the response from the authorization server and get a token
 	 */
 	
+	// 認可サーバーからリダイレクトによって送られてきた認可コード
+	const code = req.query.code;
+	console.log(`Requesting access token for code ${code}`);
+
+	// 認可サーバーのトークン・エンドポイントへ送るデータ
+	const form_data = qs.stringify({
+		grant_type: 'authorization_code', 
+		code: code,
+		redirect_uri: client.redirect_uris[0],
+	})
+
+	const headers = {
+		'Content-Type': 'application/x-www-form-urlencoded',
+		'Authorization': `Basic ${encodeClientCredentials(client.client_id, client.client_secret)}`,
+	}
+
+	console.log(`Requesting access token for code ${code}`);
+
+	// 認可サーバーのトークン・エンドポイントへのPOSTリクエスト
+	const tokRes = request(
+		'POST', 
+		authServer.tokenEndpoint,
+		{
+			body: form_data,
+			headers: headers,
+		}
+	);
+
+	// リクエスト・ボディのJSONを解析
+	const body = JSON.parse(tokRes.getBody());
+
+	res.render('index', {
+		access_token: body.access_token, 
+		scope: scope
+	});
 });
 
 app.get('/fetch_resource', function(req, res) {
