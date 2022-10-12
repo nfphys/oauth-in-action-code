@@ -49,10 +49,13 @@ app.get('/authorize', function(req, res){
 	 * Send the user to the authorization server
 	 */
 
+	state = randomstring.generate();
+
 	const authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
 		response_type: 'code',
 		client_id: client.client_id,
 		redirect_uri: client.redirect_uris[0],
+		state: state,
 	});
 
 	res.redirect(authorizeUrl);
@@ -63,7 +66,13 @@ app.get('/callback', function(req, res){
 	/*
 	 * Parse the response from the authorization server and get a token
 	 */
-	
+ 
+	// state を検証
+	if (req.query.state != state) {
+		res.render('error', {error: 'State value did not match'});
+		return;
+	}
+
 	// 認可サーバーからリダイレクトによって送られてきた認可コード
 	const code = req.query.code;
 	console.log(`Requesting access token for code ${code}`);
