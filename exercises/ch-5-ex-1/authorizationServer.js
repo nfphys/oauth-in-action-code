@@ -78,6 +78,44 @@ app.post('/approve', function(req, res) {
 	 * Process the results of the approval page, authorize the client
 	 */
 	
+	const reqid = req.body.reqid;
+	const query = requests[reqid];
+	delete requests[reqid];
+
+	if (!query) {
+		res.render('error', { error: 'No matching authorization request' });
+		return;
+	}
+
+	// 承認されなかった場合の処理
+	if (!req.body.approve) {
+		const urlParsed = buildUrl(query.redirect_uri, {
+			error: 'access denied'
+		});
+		res.redirect(urlParsed);
+		return;
+	}
+
+	// response_type が code でなかった場合の処理
+	if (query.response_type !== 'code') {
+		const urlParsed = buildUrl(query.redirect_uri, {
+			error: 'unsupported response type'
+		});
+		res.redirect(urlParsed);
+		return;
+	}
+
+	// authorization code を発行
+	const code = randomstring.generate(8);
+	codes[code] = { request: query };
+
+	// クライアントにリダイレクト
+	const urlParsed = buildUrl(query.redirect_uri, {
+		code: code, 
+		state: query.state,
+	});
+	res.redirect(urlParsed);
+	return;
 });
 
 app.post("/token", function(req, res){
