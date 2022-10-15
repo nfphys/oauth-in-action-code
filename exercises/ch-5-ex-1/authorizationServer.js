@@ -124,6 +124,79 @@ app.post("/token", function(req, res){
 	 * Process the request, issue an access token
 	 */
 
+	let clientCredentials;
+	let clientId;
+	let clientSecret;
+
+	// ヘッダに clientCredentials が含まれるかどうかを検証
+	console.log("checking request header...");
+	const auth = req.headers['authorization'];
+	if (auth) {
+		clientCredentials = decodeClientCredentials(auth);
+		clientId = clientCredentials.id;
+		clientSecret = clientCredentials.secret;
+	}
+
+	// ボディに clientCredentials が含まれるかどうかを検証
+	console.log("checking request body...");
+	if (req.body.client_id) {
+		if (clientId) {
+			// ヘッダとボディの両方に clientCredentials が存在すればエラーを返す
+			res.status(401).json({error: 'Invalid_client'});
+			return;
+		}
+		clientId = req.body.client_id;
+		clientSecret = req.body.client_secret;
+	}
+
+	// clientCredentials が正しいかどうかを検証
+	console.log("verifying client credentials...");
+	const client = getClient(clientId);
+	if (!client || client.client_secret != clientSecret) {
+		res.status(401).json({error:'invalid_client'});
+		return;
+	}
+
+	if (req.body.grant_type === 'authorization_code') {
+		const code = codes[req.body.code];
+
+		// code が存在するかどうかを検証
+		if (!code) {
+			res.status(400).json({error: 'invalid_grant'});
+			return;
+		}
+		delete codes[req.body.code];
+
+		// code が正当なクライアントのものであるかどうかを検証
+		if (code.request.client_id !== clientId) {
+			res.status(400).json({error: 'invalid_grant'});
+			return;
+		}
+		delete codes[req.body.code];
+
+		// アクセストークンを生成
+		console.log("generating access_token...");
+		const access_token = randomstring.generate();
+		const expires_at = Date.now() + 5000;
+		nosql.insert({
+			access_token: access_token, 
+			client_id: clientId,
+			expires_at: expires_at,
+		});
+
+		const token_response = {
+			access_token: access_token,
+			token_type: 'Bearer'
+		};
+		res.status(200).json(token_response);
+
+	} else {
+		res.status(400).json({error: 'unsupported grant_type'});
+		return;
+	}
+
+
+
 });
 
 var buildUrl = function(base, options, hash) {

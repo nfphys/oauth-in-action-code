@@ -62,12 +62,20 @@ app.options('/resource', cors());
 
 app.post("/resource", cors(), getAccessToken, function(req, res){
 
-	if (req.access_token) {
-		res.json(resource);
-	} else {
+	// access_token が存在するかどうかを検証
+	if (!req.access_token) {
 		res.status(401).end();
+		return;
+	}
+
+	// access_token の有効期限を検証
+	if (req.access_token.expires_at <= Date.now()) {
+		console.log("access token expired at", req.access_token.expires_at);
+		res.status(401).end();
+		return;
 	}
 	
+	res.json(resource);
 });
 
 var server = app.listen(9002, 'localhost', function () {
